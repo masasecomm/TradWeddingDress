@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Editor | Traditional Wedding Dress</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Lora:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+    <script src="config.js"></script>
+    <script src="admin.js" defer></script>
+  </head>
+  <body class="admin-page">
+    <header class="site-header">
+      <a class="header-menu" href="./#recent-posts"><span aria-hidden="true">←</span><span>Posts</span></a>
+      <a class="brand" href="./" aria-label="Traditional Wedding Dress home"><span>TRADITIONAL<span class="brand-accent"> WEDDING</span><span class="brand-period"> DRESS</span></span></a>
+      <a class="header-link" href="./">View the blog <span aria-hidden="true">↗</span></a>
+    </header>
+    <main class="admin-shell">
+      <p class="eyebrow">Your publishing studio</p>
+      <h1>Posts in the<br><em>making.</em></h1>
+      <p class="admin-intro">Sign in with your Supabase account to review drafts created by the Chrome extension. Your blog posts go live only when you publish them here.</p>
+      <section id="login-panel" class="admin-panel">
+        <h2>Editor sign in</h2>
+        <form id="login-form">
+          <label class="form-label" for="email">Email</label>
+          <input class="text-input" id="email" name="email" type="email" autocomplete="username" required>
+          <label class="form-label" for="password">Password</label>
+          <input class="text-input" id="password" name="password" type="password" autocomplete="current-password" required>
+          <div class="cf-turnstile" data-sitekey="0x4AAAAAAFPS6smwfxu1gEkl"></div>
+          <button class="button button-dark form-button" type="submit">Sign in <span aria-hidden="true">→</span></button>
+        </form>
+        <p class="form-status" id="login-status" role="status"></p>
+      </section>
+      <section id="drafts-panel" hidden>
+        <div class="section-heading">
+          <div><p class="eyebrow">Review before publishing</p><h2>Your drafts</h2></div>
+          <button class="small-button" id="sign-out" type="button">Sign out</button>
+        </div>
+        <p class="form-status" id="draft-status" role="status"></p>
+        <div class="draft-list" id="draft-list"></div>
+      </section>
+    </main>
+    <footer class="site-footer editorial-footer">
+      <div class="footer-main content-width">
+        <div class="footer-about">
+          <a class="footer-brand" href="./">TRADITIONAL<span> WEDDING</span> DRESS</a>
+          <p>A blog celebrating traditional wedding dresses and the stories woven into every look.</p>
+        </div>
+        <div><h2>Explore</h2><a href="./#recent-posts">Recent posts</a></div>
+        <div><h2>About</h2><a href="about.html">About us</a><a href="contact.html">Contact us</a><a href="./">Visit the blog</a></div>
+        <div class="footer-social"><h2>Follow</h2><a href="https://www.facebook.com/traditionalweddingdress/" target="_blank" rel="noopener noreferrer">Facebook ↗</a><a href="https://za.pinterest.com/traditionalweddingdress/" target="_blank" rel="noopener noreferrer">Pinterest ↗</a></div>
+      </div>
+      <div class="footer-bottom content-width"><span>© <span id="year"></span> Traditional Wedding Dress</span><span>Celebrating the traditions we wear.</span></div>
+    </footer>
+    <script>document.querySelector("#year").textContent = new Date().getFullYear();</script>
+  </body>
+</html>

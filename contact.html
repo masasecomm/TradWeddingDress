@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Contact Traditional Wedding Dress with a question, story idea, or note about traditional bridal style.">
+    <title>Contact Us | Traditional Wedding Dress</title>
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3860151941190347" crossorigin="anonymous"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Lora:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <script src="config.js" defer></script>
+    <script src="contact.js" defer></script>
+  </head>
+  <body class="editorial-page">
+    <header class="site-header">
+      <a class="header-menu" href="./"><span aria-hidden="true">←</span><span>Home</span></a>
+      <a class="brand" href="./" aria-label="Traditional Wedding Dress home"><span>TRADITIONAL<span class="brand-accent"> WEDDING</span><span class="brand-period"> DRESS</span></span></a>
+      <a class="header-link" href="about.html">About us <span aria-hidden="true">↗</span></a>
+    </header>
+    <main class="editorial-info contact-shell content-width">
+      <p class="eyebrow">We'd love to hear from you</p>
+      <h1>Let's <em>talk.</em></h1>
+      <p class="info-lead">Send a question, share a story idea, or tell us what you'd love to see on the blog.</p>
+      <section class="admin-panel contact-panel">
+        <form id="contact-form" method="post" target="contact-result">
+          <label class="form-label" for="contact-name">Names <span aria-hidden="true">*</span></label>
+          <input class="text-input" id="contact-name" name="name" type="text" autocomplete="name" maxlength="150" required>
+          <label class="form-label" for="contact-email">Email <span aria-hidden="true">*</span></label>
+          <input class="text-input" id="contact-email" name="email" type="email" autocomplete="email" maxlength="254" required>
+          <label class="form-label" for="contact-phone">Phone</label>
+          <input class="text-input" id="contact-phone" name="phone" type="tel" autocomplete="tel" maxlength="40">
+          <label class="form-label" for="contact-message">Message</label>
+          <textarea class="text-input contact-message" id="contact-message" name="message" rows="7" maxlength="5000"></textarea>
+          <div class="contact-trap" aria-hidden="true">
+            <label for="contact-website">Leave this field empty</label>
+            <input id="contact-website" name="website" type="text" tabindex="-1" autocomplete="off">
+          </div>
+          <button class="button button-dark form-button" type="submit">Send message <span aria-hidden="true">→</span></button>
+          <p class="form-status" id="contact-status" role="status" aria-live="polite">Your message will be saved to our Google Sheet and emailed to our team. We do not collect your location.</p>
+        </form>
+      </section>
+      <iframe class="contact-result-frame" name="contact-result" title="Contact form response"></iframe>
+    </main>
+    <footer class="site-footer editorial-footer">
+      <div class="footer-main content-width">
+        <div class="footer-about">
+          <a class="footer-brand" href="./">TRADITIONAL<span> WEDDING</span> DRESS</a>
+          <p>A blog celebrating traditional wedding dresses and the stories woven into every look.</p>
+        </div>
+        <div><h2>Explore</h2><a href="./#recent-posts">Recent posts</a><a href="./#latest-news">Latest posts</a></div>
+        <div><h2>About</h2><a href="about.html">About us</a><a href="contact.html">Contact us</a><a href="admin.html">Editor sign in</a></div>
+        <div class="footer-social"><h2>Follow</h2><a href="https://www.facebook.com/traditionalweddingdress/" target="_blank" rel="noopener noreferrer">Facebook ↗</a><a href="https://za.pinterest.com/traditionalweddingdress/" target="_blank" rel="noopener noreferrer">Pinterest ↗</a></div>
+      </div>
+      <div class="footer-bottom content-width"><span>© <span id="year"></span> Traditional Wedding Dress</span><span>Celebrating the traditions we wear.</span></div>
+    </footer>
+    <script>document.querySelector("#year").textContent = new Date().getFullYear();</script>
+  </body>
+</html>
