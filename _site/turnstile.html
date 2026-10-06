@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Security check | Traditional Wedding Dress</title>
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
+    <style>
+      body { margin: 0; font: 13px Arial, sans-serif; }
+      #turnstile { min-height: 65px; }
+      #status { margin: 4px 0; color: #70433d; }
+    </style>
+  </head>
+  <body>
+    <div id="turnstile"></div>
+    <p id="status" role="status" aria-live="polite"></p>
+    <script>
+      const siteKey = "0x4AAAAAAFPS6smwfxu1gEkl";
+      const status = document.querySelector("#status");
+      let widgetId;
+
+      function sendToken(token) {
+        status.textContent = "";
+        parent.postMessage({ type: "turnstile-token", token }, "*");
+      }
+
+      function renderWidget() {
+        if (!window.turnstile || widgetId) return;
+        widgetId = window.turnstile.render("#turnstile", {
+          sitekey: siteKey,
+          callback: sendToken,
+          "expired-callback": () => {
+            status.textContent = "The security check expired. Please complete it again.";
+            parent.postMessage({ type: "turnstile-token", token: "" }, "*");
+          },
+          "error-callback": () => {
+            status.textContent = "The security check could not load. Refresh and try again.";
+            parent.postMessage({ type: "turnstile-token", token: "" }, "*");
+            return true;
+          }
+        });
+      }
+
+      window.addEventListener("message", (event) => {
+        if (event.source !== parent || event.data?.type !== "reset-turnstile" || !window.turnstile || !widgetId) return;
+        status.textContent = "";
+        window.turnstile.reset(widgetId);
+      });
+
+      window.addEventListener("load", renderWidget);
+      const loadTimer = window.setInterval(() => {
+        if (!window.turnstile || widgetId) return;
+        renderWidget();
+        if (widgetId) window.clearInterval(loadTimer);
+      }, 250);
+      window.setTimeout(() => {
+        if (widgetId) return;
+        window.clearInterval(loadTimer);
+        status.textContent = "The security check did not load. Refresh and try again.";
+      }, 15000);
+    </script>
+  </body>
+</html>

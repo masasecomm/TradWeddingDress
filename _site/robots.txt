@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /admin.html
+Disallow: /article.html
+Disallow: /turnstile.html
+Sitemap: https://traditionalweddingdress.com/sitemap.xml
