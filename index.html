@@ -1,0 +1,572 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f7f9fc">
+  <meta name="description" content="SchoolNearMe is coming soon. Find and compare schools, explore school information and make a more informed choice for your family.">
+  <title>SchoolNearMe — Coming Soon</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #152746;
+      --muted: #65738a;
+      --blue: #2864d7;
+      --blue-dark: #1749ae;
+      --sky: #eaf2ff;
+      --line: #e5eaf2;
+      --paper: #ffffff;
+      --page: #f7f9fc;
+      --green: #2a9d78;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      min-width: 320px;
+      min-height: 100vh;
+      margin: 0;
+      background:
+        radial-gradient(ellipse at 84% 14%, rgba(169, 202, 255, .3), transparent 33rem),
+        radial-gradient(ellipse at 4% 90%, rgba(197, 236, 222, .25), transparent 30rem),
+        var(--page);
+      color: var(--ink);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    a { color: inherit; }
+
+    .page {
+      display: flex;
+      min-height: 100vh;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .topbar {
+      display: flex;
+      width: min(1160px, calc(100% - 48px));
+      height: 88px;
+      margin: 0 auto;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 11px;
+      text-decoration: none;
+    }
+
+    .brand-mark {
+      display: grid;
+      width: 42px;
+      height: 42px;
+      place-items: center;
+      border-radius: 13px;
+      background: var(--blue);
+      color: white;
+      box-shadow: 0 7px 16px rgba(40, 100, 215, .2);
+    }
+
+    .brand-name {
+      font-size: 19px;
+      font-weight: 750;
+      letter-spacing: -.6px;
+    }
+
+    .top-note {
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 0 4px rgba(42, 157, 120, .12);
+    }
+
+    main {
+      display: grid;
+      width: min(1160px, calc(100% - 48px));
+      flex: 1;
+      margin: 0 auto;
+      grid-template-columns: 1.02fr .98fr;
+      align-items: center;
+      gap: clamp(35px, 7vw, 100px);
+      padding: 36px 0 68px;
+    }
+
+    .copy { position: relative; z-index: 1; }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+      margin-bottom: 23px;
+      padding: 8px 12px;
+      border: 1px solid #d9e6ff;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, .76);
+      color: var(--blue-dark);
+      font-size: 12px;
+      font-weight: 750;
+      letter-spacing: .09em;
+      text-transform: uppercase;
+    }
+
+    .eyebrow svg { flex: none; }
+
+    h1 {
+      max-width: 650px;
+      margin: 0;
+      font-size: clamp(46px, 6.4vw, 76px);
+      font-weight: 780;
+      letter-spacing: -.065em;
+      line-height: 1.02;
+    }
+
+    h1 span {
+      display: block;
+      color: var(--blue);
+    }
+
+    .intro {
+      max-width: 530px;
+      margin: 23px 0 0;
+      color: var(--muted);
+      font-size: clamp(16px, 1.6vw, 18px);
+      line-height: 1.75;
+    }
+
+    .promise {
+      display: flex;
+      max-width: 485px;
+      margin-top: 30px;
+      align-items: flex-start;
+      gap: 13px;
+    }
+
+    .promise-icon {
+      display: grid;
+      width: 36px;
+      height: 36px;
+      flex: none;
+      place-items: center;
+      border: 1px solid #dce8fb;
+      border-radius: 11px;
+      background: #fff;
+      color: var(--blue);
+    }
+
+    .promise p {
+      margin: 0;
+      color: #506078;
+      font-size: 14px;
+      line-height: 1.65;
+    }
+
+    .promise strong { color: var(--ink); }
+
+    .visual {
+      position: relative;
+      display: grid;
+      min-height: 460px;
+      place-items: center;
+    }
+
+    .orbit {
+      position: absolute;
+      width: min(440px, 90%);
+      aspect-ratio: 1;
+      border: 1px solid rgba(102, 145, 218, .17);
+      border-radius: 50%;
+    }
+
+    .orbit::before,
+    .orbit::after {
+      position: absolute;
+      border: 1px solid rgba(102, 145, 218, .15);
+      border-radius: 50%;
+      content: "";
+      inset: 10%;
+    }
+
+    .orbit::after { inset: 21%; }
+
+    .float-dot {
+      position: absolute;
+      width: 12px;
+      height: 12px;
+      border: 3px solid #fff;
+      border-radius: 50%;
+      background: #83aaf2;
+      box-shadow: 0 2px 9px rgba(36, 83, 158, .18);
+    }
+
+    .float-dot.one { top: 15%; right: 20%; }
+    .float-dot.two { bottom: 20%; left: 13%; width: 9px; height: 9px; background: #62bea0; }
+    .float-dot.three { top: 39%; left: 8%; width: 7px; height: 7px; background: #f3bf67; }
+
+    .school-card {
+      position: relative;
+      width: min(390px, 92%);
+      padding: 21px;
+      border: 1px solid rgba(226, 233, 244, .95);
+      border-radius: 24px;
+      background: rgba(255, 255, 255, .94);
+      box-shadow: 0 28px 70px rgba(33, 63, 112, .13), 0 4px 12px rgba(33, 63, 112, .04);
+      transform: rotate(-2deg);
+    }
+
+    .card-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 19px;
+    }
+
+    .card-label {
+      color: #7b879a;
+      font-size: 11px;
+      font-weight: 750;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+    }
+
+    .card-more {
+      display: flex;
+      gap: 4px;
+    }
+
+    .card-more i {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: #c4ccda;
+    }
+
+    .school-preview {
+      position: relative;
+      display: grid;
+      height: 172px;
+      overflow: hidden;
+      place-items: center;
+      border-radius: 16px;
+      background: linear-gradient(145deg, #d9eaff, #eff6ff 55%, #dcefe6);
+    }
+
+    .sun {
+      position: absolute;
+      top: 23px;
+      right: 29px;
+      width: 35px;
+      height: 35px;
+      border-radius: 50%;
+      background: #ffd47b;
+      box-shadow: 0 0 0 10px rgba(255, 212, 123, .2);
+    }
+
+    .ground {
+      position: absolute;
+      right: -10%;
+      bottom: -31px;
+      left: -10%;
+      height: 90px;
+      border-radius: 50% 50% 0 0;
+      background: #aad9c2;
+    }
+
+    .building {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      width: 210px;
+      height: 100px;
+      margin-top: 23px;
+      align-items: flex-end;
+      justify-content: center;
+      gap: 10px;
+      padding: 0 15px 12px;
+      border: 1px solid rgba(59, 81, 118, .13);
+      border-radius: 5px 5px 2px 2px;
+      background: #fff;
+      box-shadow: 0 12px 17px rgba(53, 91, 139, .12);
+    }
+
+    .roof {
+      position: absolute;
+      top: -19px;
+      right: -7px;
+      left: -7px;
+      height: 24px;
+      background: #ef886b;
+      clip-path: polygon(50% 0, 100% 100%, 0 100%);
+    }
+
+    .window {
+      width: 25px;
+      height: 29px;
+      border: 4px solid #fff;
+      border-radius: 3px;
+      background: #9bc7ed;
+      box-shadow: 0 0 0 1px #d4e0ed;
+    }
+
+    .door {
+      width: 28px;
+      height: 50px;
+      border-radius: 4px 4px 0 0;
+      background: #537aa9;
+    }
+
+    .tree {
+      position: absolute;
+      z-index: 2;
+      bottom: 18px;
+      width: 23px;
+      height: 39px;
+      border-radius: 50% 50% 45% 45%;
+      background: #5eae84;
+    }
+
+    .tree::after {
+      position: absolute;
+      bottom: -9px;
+      left: 10px;
+      width: 5px;
+      height: 13px;
+      background: #8c6a4c;
+      content: "";
+    }
+
+    .tree.left { left: 27px; transform: scale(.8); }
+    .tree.right { right: 26px; transform: scale(1.08); }
+
+    .school-info { padding: 17px 2px 2px; }
+
+    .skeleton {
+      height: 9px;
+      border-radius: 999px;
+      background: #e9eef6;
+    }
+
+    .skeleton.title { width: 58%; height: 13px; background: #ccd9ee; }
+    .skeleton.sub { width: 38%; margin-top: 10px; }
+
+    .info-row {
+      display: flex;
+      margin-top: 19px;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .pill {
+      width: 64px;
+      height: 23px;
+      border: 1px solid #e1e9f5;
+      border-radius: 999px;
+      background: #f5f8fd;
+    }
+
+    .pill.blue { width: 82px; border-color: #d8e6ff; background: #edf4ff; }
+    .pill.green { width: 58px; border-color: #d8eee4; background: #eff9f4; }
+
+    .floating-note {
+      position: absolute;
+      right: -5px;
+      bottom: 44px;
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      padding: 13px 16px;
+      border: 1px solid #e8edf4;
+      border-radius: 15px;
+      background: #fff;
+      box-shadow: 0 14px 30px rgba(33, 63, 112, .12);
+      animation: bob 4s ease-in-out infinite;
+    }
+
+    .note-icon {
+      display: grid;
+      width: 34px;
+      height: 34px;
+      place-items: center;
+      border-radius: 10px;
+      background: #edf4ff;
+      color: var(--blue);
+    }
+
+    .floating-note strong,
+    .floating-note span { display: block; }
+
+    .floating-note strong { font-size: 12px; }
+    .floating-note span { margin-top: 2px; color: var(--muted); font-size: 10px; }
+
+    footer {
+      display: flex;
+      width: min(1160px, calc(100% - 48px));
+      min-height: 66px;
+      margin: 0 auto;
+      align-items: center;
+      justify-content: space-between;
+      border-top: 1px solid rgba(221, 228, 238, .8);
+      color: #79869a;
+      font-size: 12px;
+    }
+
+    .footer-tagline { color: #5d6d83; font-weight: 600; }
+
+    @keyframes bob {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-7px); }
+    }
+
+    @media (max-width: 820px) {
+      main {
+        grid-template-columns: 1fr;
+        gap: 12px;
+        padding-top: 30px;
+      }
+
+      .copy { text-align: center; }
+      .eyebrow { margin-right: auto; margin-left: auto; }
+      .intro, .promise { margin-right: auto; margin-left: auto; }
+      .promise { text-align: left; }
+      .visual { min-height: 395px; }
+      .school-card { width: min(370px, 88%); }
+      .floating-note { right: 2%; bottom: 25px; }
+    }
+
+    @media (max-width: 500px) {
+      .topbar, main, footer { width: min(100% - 36px, 1160px); }
+      .topbar { height: 72px; }
+      .brand-name { font-size: 17px; }
+      .brand-mark { width: 38px; height: 38px; }
+      .top-note { font-size: 11px; }
+      main { padding-top: 35px; padding-bottom: 35px; }
+      h1 { font-size: clamp(43px, 13vw, 58px); }
+      .visual { min-height: 350px; }
+      .school-preview { height: 150px; }
+      .school-card { padding: 16px; }
+      .building { transform: scale(.86); }
+      .floating-note { right: 0; bottom: 11px; padding: 10px 12px; }
+      footer { gap: 8px; font-size: 10px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        scroll-behaviour: auto !important;
+        animation-duration: .01ms !important;
+        animation-iteration-count: 1 !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header class="topbar">
+      <a class="brand" href="/" aria-label="SchoolNearMe home">
+        <span class="brand-mark" aria-hidden="true">
+          <svg width="23" height="23" viewBox="0 0 24 24" fill="none">
+            <path d="M3 9.5 12 4l9 5.5-9 5.5-9-5.5Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+            <path d="M6.5 12v4.2c3.4 2.5 7.6 2.5 11 0V12M21 10v6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </span>
+        <span class="brand-name">SchoolNearMe</span>
+      </a>
+      <div class="top-note"><span class="status-dot" aria-hidden="true"></span> Something good is taking shape</div>
+    </header>
+
+    <main>
+      <section class="copy" aria-labelledby="coming-soon">
+        <div class="eyebrow">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M12 3v3m0 12v3M3 12h3m12 0h3M5.64 5.64l2.12 2.12m8.48 8.48 2.12 2.12m0-12.72-2.12 2.12m-8.48 8.48-2.12 2.12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+            <circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="1.8"/>
+          </svg>
+          A better way to find a school
+        </div>
+
+        <h1 id="coming-soon">Good school choices <span>start here.</span></h1>
+        <p class="intro">
+          We’re building a simpler way for families to discover schools, compare useful information and feel more confident about what comes next.
+        </p>
+
+        <div class="promise">
+          <span class="promise-icon" aria-hidden="true">
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none">
+              <path d="M12 21s7-4.4 7-11V5l-7-2-7 2v5c0 6.6 7 11 7 11Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+              <path d="m9 12 2 2 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </span>
+          <p><strong>Made for families.</strong> Clear school details and helpful comparisons, all in one place. SchoolNearMe is getting ready to make your search a little easier.</p>
+        </div>
+      </section>
+
+      <section class="visual" aria-label="Illustration of a school listing">
+        <div class="orbit" aria-hidden="true"></div>
+        <span class="float-dot one" aria-hidden="true"></span>
+        <span class="float-dot two" aria-hidden="true"></span>
+        <span class="float-dot three" aria-hidden="true"></span>
+
+        <div class="school-card" aria-hidden="true">
+          <div class="card-top">
+            <span class="card-label">Your next school search</span>
+            <span class="card-more"><i></i><i></i><i></i></span>
+          </div>
+          <div class="school-preview">
+            <span class="sun"></span>
+            <span class="ground"></span>
+            <span class="tree left"></span>
+            <span class="tree right"></span>
+            <div class="building">
+              <span class="roof"></span>
+              <span class="window"></span>
+              <span class="window"></span>
+              <span class="door"></span>
+              <span class="window"></span>
+              <span class="window"></span>
+            </div>
+          </div>
+          <div class="school-info">
+            <div class="skeleton title"></div>
+            <div class="skeleton sub"></div>
+            <div class="info-row">
+              <span class="pill blue"></span>
+              <span class="pill green"></span>
+              <span class="pill"></span>
+            </div>
+          </div>
+        </div>
+
+        <div class="floating-note" aria-hidden="true">
+          <span class="note-icon">
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none">
+              <path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z" stroke="currentColor" stroke-width="1.8"/>
+              <circle cx="12" cy="10" r="2.5" stroke="currentColor" stroke-width="1.8"/>
+            </svg>
+          </span>
+          <span><strong>Closer to home</strong><span>Find schools in your area</span></span>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <span>© <span id="year">2026</span> SchoolNearMe</span>
+      <span class="footer-tagline">Helping families find their way to the right school.</span>
+    </footer>
+  </div>
+  <script>
+    document.getElementById("year").textContent = new Date().getFullYear();
+  </script>
+</body>
+</html>
