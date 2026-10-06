@@ -52,8 +52,9 @@
             <label for="contact-website">Leave this field empty</label>
             <input id="contact-website" name="website" type="text" tabindex="-1" autocomplete="off">
           </div>
+          <input id="contact-submission-id" name="submissionId" type="hidden">
           <button class="button button-dark form-button" type="submit">Send message <span aria-hidden="true">→</span></button>
-          <p class="form-status" id="contact-status" role="status" aria-live="polite">Your message will be saved to our Google Sheet and emailed to our team. We do not collect your location.</p>
+          <p class="form-status" id="contact-status" role="status" aria-live="polite"></p>
         </form>
       </section>
       <iframe class="contact-result-frame" name="contact-result" title="Contact form response"></iframe>

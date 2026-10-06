@@ -140,7 +140,8 @@ byId("save-settings").addEventListener("click", async () => {
 byId("login-form").addEventListener("submit", async (event) => {
   event.preventDefault();
   statusLine.textContent = "Signing in…";
-  const button = event.currentTarget.querySelector("button");
+  const form = event.currentTarget;
+  const button = form.querySelector("button");
   button.disabled = true;
   try {
     if (!settings) throw new Error("Save your Supabase connection first.");
@@ -159,7 +160,7 @@ byId("login-form").addEventListener("submit", async (event) => {
     if (!response.ok) throw new Error(data.msg || data.message || "Sign-in failed.");
     session = data;
     await chromeStorageSet({ session });
-    event.currentTarget.reset();
+    form.reset();
     statusLine.textContent = "";
     displaySignedIn();
   } catch (error) {

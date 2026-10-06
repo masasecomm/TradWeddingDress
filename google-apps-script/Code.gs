@@ -4,23 +4,26 @@ const NOTIFICATION_EMAIL = "masasecomm@gmail.com";
 const HEADERS = ["Received at", "Names", "Email", "Phone", "Message"];
 
 function doPost(event) {
+  const fields = event && event.parameter ? event.parameter : {};
+  const submissionId = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(fields.submissionId || "")
+    ? fields.submissionId
+    : "";
   try {
-    const fields = event && event.parameter ? event.parameter : {};
-    if (fields.website) return response(true);
+    if (fields.website) return response(true, submissionId);
 
     const name = clean(fields.name, 150);
     const email = clean(fields.email, 254).toLowerCase();
     const phone = clean(fields.phone, 40);
     const message = clean(fields.message, 5000);
     if (!name || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      return response(false);
+      return response(false, submissionId);
     }
 
     const cache = CacheService.getScriptCache();
     const emailKey = `recent-contact-${Utilities.base64EncodeWebSafe(
       Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, email)
     )}`;
-    if (cache.get(emailKey)) return response(false);
+    if (cache.get(emailKey)) return response(false, submissionId);
 
     const spreadsheet = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = spreadsheet.getSheetByName(SHEET_NAME);
@@ -44,10 +47,10 @@ function doPost(event) {
       name: "Traditional Wedding Dress"
     });
     cache.put(emailKey, "1", 60);
-    return response(true);
+    return response(true, submissionId);
   } catch (error) {
     console.error("Contact form submission failed", error);
-    return response(false);
+    return response(false, submissionId);
   }
 }
 
@@ -59,8 +62,9 @@ function safeCell(value) {
   return /^[=+\-@]/.test(value) ? `'${value}` : value;
 }
 
-function response(success) {
+function response(success, submissionId) {
+  const payload = JSON.stringify({ type: "contact-form-result", success, submissionId });
   return HtmlService.createHtmlOutput(
-    `<script>window.top.postMessage({type:"contact-form-result",success:${success}}, "*");</script>`
+    `<script>window.top.postMessage(${payload}, "*");</script>`
   );
 }

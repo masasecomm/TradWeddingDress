@@ -1,5 +1,6 @@
 const contactForm = document.querySelector("#contact-form");
 const contactStatus = document.querySelector("#contact-status");
+const submissionIdField = document.querySelector("#contact-submission-id");
 const contactConfig = window.APP_CONFIG;
 const contactEndpoint = contactConfig?.contactFormScriptUrl?.trim();
 const validContactEndpoint = (() => {
@@ -13,6 +14,7 @@ const validContactEndpoint = (() => {
   }
 })();
 let submissionTimeout;
+let pendingSubmissionId = "";
 
 if (validContactEndpoint) {
   contactForm.action = contactEndpoint;
@@ -24,8 +26,13 @@ if (validContactEndpoint) {
 }
 
 window.addEventListener("message", (event) => {
-  const frame = document.querySelector('iframe[name="contact-result"]');
-  if (event.source !== frame.contentWindow || event.data?.type !== "contact-form-result") return;
+  if (
+    event.data?.type !== "contact-form-result"
+    || typeof event.data.success !== "boolean"
+    || !pendingSubmissionId
+    || event.data.submissionId !== pendingSubmissionId
+  ) return;
+  pendingSubmissionId = "";
   window.clearTimeout(submissionTimeout);
   contactForm.querySelector('button[type="submit"]').disabled = false;
   if (event.data.success === true) {
@@ -41,11 +48,14 @@ contactForm.addEventListener("submit", (event) => {
     event.preventDefault();
     return;
   }
+  pendingSubmissionId = crypto.randomUUID();
+  submissionIdField.value = pendingSubmissionId;
   contactStatus.textContent = "Sending your message…";
   contactForm.querySelector('button[type="submit"]').disabled = true;
   window.clearTimeout(submissionTimeout);
   submissionTimeout = window.setTimeout(() => {
-    if (contactStatus.textContent === "Sending your message…") {
+    if (pendingSubmissionId) {
+      pendingSubmissionId = "";
       contactStatus.textContent = "We did not receive a confirmation. Please check your connection and try again.";
       contactForm.querySelector('button[type="submit"]').disabled = false;
     }
