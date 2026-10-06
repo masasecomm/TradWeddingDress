@@ -20,9 +20,9 @@ The form stores names, email addresses, optional phone numbers, messages, and su
 
 ## Cloudflare Turnstile login
 
-The editor login displays the supplied Turnstile site key and sends its challenge token to Supabase. For server-side verification, configure CAPTCHA in the Supabase dashboard under **Authentication → Bot and Abuse Protection** and enter the matching Turnstile **secret key** there; never put the secret in `config.js` or the website. Add the domain where the website is hosted to the Turnstile widget's allowed hostnames. The secret key is not required in this repository.
+The website editor and Chrome extension use the supplied Turnstile site key and send challenge tokens to Supabase. The extension loads its challenge from `turnstile.html` on the website, so keep `traditionalweddingdress.com` in the widget's allowed hostnames. In the Supabase dashboard, configure CAPTCHA under **Authentication → Bot and Abuse Protection** with provider **Turnstile by Cloudflare** and enter the matching Turnstile **secret key** there. Never put the secret in `config.js`, the extension, or the website. The secret key is not required in this repository.
 
-Supabase CAPTCHA enforcement applies to extension sign-ins too. The Chrome extension does not yet provide a Turnstile challenge, so enabling CAPTCHA in Supabase can prevent extension sign-in until its login flow is updated. The extension's publishing session must be refreshed after the login flow is updated.
+Supabase CAPTCHA enforcement applies to extension sign-ins too. Load the updated extension and confirm its Cloudflare security check is available before enabling CAPTCHA in Supabase. Existing extension sessions do not need to be refreshed.
 
 ## Google AdSense
 
@@ -65,9 +65,9 @@ The blog uses relative page links and is suitable for a repository hosted at a G
 1. Open `chrome://extensions` in Chrome and enable **Developer mode**.
 2. Select **Load unpacked** and choose the repository's `extension` folder. The extension is named **Traditional Wedding Dress Website**.
 3. Open the extension popup. The Supabase project connection is prefilled; expand **Website connection** only if you need to change it.
-4. Sign in with the editor account, paste a valid Instagram post or reel link, enter your title and article, select an authorized image if needed, and confirm your image rights.
+4. Complete the Cloudflare security check and sign in with the editor account. Paste a valid Instagram post or reel link, enter your title and article, select an authorized image if needed, and confirm your image rights.
 5. Choose **Save as draft** to review it later in `admin.html`, or **Publish now** to make it live immediately.
 
-The extension stores the Supabase URL, anon key, and sign-in session in Chrome extension storage. The password is not stored. Its current connection setting expects a standard `*.supabase.co` project URL.
+The extension stores the Supabase URL, anon key, and sign-in session in Chrome extension storage. The password and CAPTCHA token are not stored. Its current connection setting expects a standard `*.supabase.co` project URL. After replacing extension files, open `chrome://extensions` and select **Reload** for the unpacked extension.
 
 Write or paste your article directly into the extension. It saves your title and article as a draft without using an AI service. The article summary is made from the first part of your text. Instagram photo retrieval requires an eligible Meta oEmbed token; otherwise, upload the image file yourself.

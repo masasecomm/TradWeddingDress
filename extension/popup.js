@@ -2,15 +2,35 @@ const byId = (id) => document.getElementById(id);
 const settingsFormUrl = byId("project-url");
 const settingsFormKey = byId("anon-key");
 const statusLine = byId("status");
+const captchaFrame = byId("captcha-frame");
+const captchaFrameOrigin = "https://traditionalweddingdress.com";
 const defaultSettings = {
   url: "https://birfyvrtkmzgghaspodx.supabase.co",
   anonKey: "sb_publishable_NWEihHYNsnlJJxvIcj9VDw_8YAB-yE_"
 };
 let settings = null;
 let session = null;
+let captchaToken = "";
 
 const chromeStorageGet = (keys) => new Promise((resolve) => chrome.storage.local.get(keys, resolve));
 const chromeStorageSet = (value) => new Promise((resolve) => chrome.storage.local.set(value, resolve));
+
+function resetCaptcha() {
+  captchaToken = "";
+  captchaFrame.contentWindow?.postMessage({ type: "reset-turnstile" }, captchaFrameOrigin);
+}
+
+window.addEventListener("message", (event) => {
+  if (
+    event.origin !== captchaFrameOrigin
+    || event.source !== captchaFrame.contentWindow
+    || event.data?.type !== "turnstile-token"
+    || typeof event.data.token !== "string"
+  ) {
+    return;
+  }
+  captchaToken = event.data.token;
+});
 
 async function refreshSession() {
   if (!session?.refresh_token) {
@@ -112,11 +132,17 @@ byId("login-form").addEventListener("submit", async (event) => {
   button.disabled = true;
   try {
     if (!settings) throw new Error("Save your Supabase connection first.");
+    if (!captchaToken) throw new Error("Complete the Cloudflare security check before signing in.");
     const response = await fetch(`${settings.url}/auth/v1/token?grant_type=password`, {
       method: "POST",
       headers: { apikey: settings.anonKey, "Content-Type": "application/json" },
-      body: JSON.stringify({ email: byId("email").value.trim(), password: byId("password").value })
+      body: JSON.stringify({
+        email: byId("email").value.trim(),
+        password: byId("password").value,
+        gotrue_meta_security: { captcha_token: captchaToken }
+      })
     });
+    resetCaptcha();
     const data = await response.json();
     if (!response.ok) throw new Error(data.msg || data.message || "Sign-in failed.");
     session = data;
@@ -125,6 +151,7 @@ byId("login-form").addEventListener("submit", async (event) => {
     statusLine.textContent = "";
     displaySignedIn();
   } catch (error) {
+    resetCaptcha();
     statusLine.textContent = error.message;
   } finally {
     button.disabled = false;
