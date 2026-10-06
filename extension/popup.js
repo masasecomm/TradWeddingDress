@@ -68,6 +68,18 @@ function validProjectUrl(value) {
   }
 }
 
+function publishedPostUrl(post) {
+  const slug = String(post.title || "")
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "")
+    .slice(0, 70)
+    .replace(/-+$/g, "") || "wedding-dress";
+  return `https://traditionalweddingdress.com/posts/${slug}-${encodeURIComponent(post.id)}/`;
+}
+
 async function api(path, options = {}, retry = true) {
   if (!settings?.url || !settings?.anonKey) throw new Error("Save your Supabase connection first.");
   await ensureFreshSession();
@@ -205,10 +217,14 @@ byId("draft-form").addEventListener("submit", async (event) => {
     if (!session?.access_token) throw new Error("Sign in before creating a draft.");
     const instagramUrl = byId("instagram-url").value.trim();
     const title = byId("post-title").value.trim();
+    const excerpt = byId("post-description").value.trim();
     const body = byId("post-body").value.trim();
+    const imageAlt = byId("image-alt").value.trim();
     const imageFile = byId("featured-image").files[0];
     if (title.length < 5 || title.length > 160) throw new Error("The title must be between 5 and 160 characters.");
+    if (excerpt.length < 50 || excerpt.length > 160) throw new Error("The search description must be between 50 and 160 characters.");
     if (body.length < 100 || body.length > 12000) throw new Error("The article must be between 100 and 12,000 characters.");
+    if (imageAlt.length < 5 || imageAlt.length > 250) throw new Error("The featured image description must be between 5 and 250 characters.");
     const featuredImageUrl = imageFile ? await uploadFeaturedImage(imageFile) : undefined;
     const result = await api("/functions/v1/create-draft", {
       method: "POST",
@@ -217,6 +233,8 @@ byId("draft-form").addEventListener("submit", async (event) => {
         instagramUrl,
         featuredImageUrl,
         title,
+        excerpt,
+        imageAlt,
         body,
         status: publishStatus,
         imageRightsConfirmed: byId("image-rights").checked
@@ -241,6 +259,9 @@ byId("draft-form").addEventListener("submit", async (event) => {
     }
     byId("success-title").textContent = result.post.title;
     byId("success-status").textContent = published ? "PUBLISHED" : "DRAFT SAVED";
+    const publishedLink = byId("published-link");
+    publishedLink.hidden = !published;
+    if (published) publishedLink.href = publishedPostUrl(result.post);
     byId("success-message").textContent = published
       ? "Your article is now live on your website."
       : publishMessage || "Your article and featured image are saved as a draft. Review it in your website editor before publishing.";

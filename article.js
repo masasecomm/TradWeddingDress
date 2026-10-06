@@ -6,6 +6,63 @@ function safeText(value) {
   })[character]);
 }
 
+function updateArticleMetadata(post) {
+  const title = `${post.title} | Traditional Wedding Dress`;
+  const description = String(post.excerpt || post.body || "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 160);
+  const image = post.featured_image_url || "";
+  const imageAlt = post.image_alt || post.title;
+
+  document.title = title;
+  document.querySelector('meta[name="description"]').content = description;
+  for (const [selector, content] of [
+    ['meta[property="og:type"]', "article"],
+    ['meta[property="og:title"]', title],
+    ['meta[property="og:description"]', description],
+    ['meta[property="og:url"]', location.href],
+    ['meta[property="og:image"]', image],
+    ['meta[property="og:image:alt"]', imageAlt],
+    ['meta[name="twitter:title"]', title],
+    ['meta[name="twitter:description"]', description],
+    ['meta[name="twitter:image"]', image],
+    ['meta[name="twitter:image:alt"]', imageAlt]
+  ]) {
+    let tag = document.querySelector(selector);
+    if (!tag) {
+      const [, attribute, value] = selector.match(/\[(name|property)="([^"]+)"\]/);
+      tag = document.createElement("meta");
+      tag.setAttribute(attribute, value);
+      document.head.append(tag);
+    }
+    tag.content = content;
+  }
+  let canonical = document.querySelector('link[rel="canonical"]');
+  if (!canonical) {
+    canonical = document.createElement("link");
+    canonical.rel = "canonical";
+    document.head.append(canonical);
+  }
+  canonical.href = location.href;
+  const oldSchema = document.querySelector("#article-structured-data");
+  if (oldSchema) oldSchema.remove();
+  const schema = document.createElement("script");
+  schema.id = "article-structured-data";
+  schema.type = "application/ld+json";
+  schema.textContent = JSON.stringify({
+    "@context": "https://schema.org",
+    "@type": "BlogPosting",
+    headline: post.title,
+    description,
+    image: image ? [image] : [],
+    datePublished: post.published_at || post.created_at,
+    author: { "@type": "Organization", name: "Traditional Wedding Dress" },
+    mainEntityOfPage: location.href
+  }).replace(/</g, "\\u003c");
+  document.head.append(schema);
+}
+
 async function loadArticle() {
   const config = window.APP_CONFIG;
   const id = new URLSearchParams(location.search).get("id");
@@ -15,7 +72,7 @@ async function loadArticle() {
   }
   try {
     const query = new URLSearchParams({
-      select: "title,body,excerpt,category,featured_image_url,image_alt,source_url,created_at",
+      select: "title,body,excerpt,category,featured_image_url,image_alt,source_url,created_at,published_at,status",
       id: `eq.${id}`,
       limit: "1"
     });
@@ -38,6 +95,7 @@ async function loadArticle() {
       articleRoot.innerHTML = '<p class="empty-message">This post is not available. <a href="./">Return to the blog</a>.</p>';
       return;
     }
+    updateArticleMetadata(post);
     const paragraphs = post.body.split(/\n{2,}/).map((paragraph) => `<p>${safeText(paragraph).replace(/\n/g, "<br>")}</p>`).join("");
     articleRoot.innerHTML = `
       <article class="article-body">

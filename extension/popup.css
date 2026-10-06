@@ -38,5 +38,6 @@ textarea { resize: vertical; }
 .success-mark { display: grid; width: 42px; height: 42px; margin-bottom: 20px; place-items: center; border-radius: 50%; background: #e5eee4; color: #49664c; font-size: 20px; }
 #success-panel h2 { margin: 0 0 10px; font: 25px Georgia, serif; font-weight: 500; }
 #success-panel > p:not(.kicker) { color: var(--muted); font-size: 12px; line-height: 1.65; }
+#published-link[hidden] { display: none; }
 footer { padding: 12px 22px; border-top: 1px solid var(--line); color: var(--muted); font-size: 9px; text-align: center; }
 [hidden] { display: none !important; }

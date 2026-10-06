@@ -1,2 +1,4 @@
 supabase/.env
 .DS_Store
+/_site/
+/.seo-test-*/

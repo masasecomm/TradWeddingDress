@@ -45,8 +45,12 @@
             <input id="instagram-url" type="url" placeholder="https://www.instagram.com/p/..." required>
             <label for="post-title">Article title</label>
             <input id="post-title" type="text" minlength="5" maxlength="160" placeholder="Give your story a title" required>
+            <label for="post-description">Search description <span>(50–160 characters)</span></label>
+            <textarea id="post-description" rows="3" minlength="50" maxlength="160" placeholder="Write a clear summary of this dress and what readers will learn." required></textarea>
             <label for="post-body">Your article</label>
             <textarea id="post-body" rows="8" minlength="100" maxlength="12000" placeholder="Write or paste your article here (at least 100 characters)." required></textarea>
+            <label for="image-alt">Featured image description</label>
+            <input id="image-alt" type="text" minlength="5" maxlength="250" placeholder="Describe the dress and visible details in the image." required>
             <label for="featured-image">Upload the featured image <span>(if Instagram cannot provide it)</span></label>
             <input id="featured-image" type="file" accept="image/jpeg,image/png,image/webp">
             <label class="rights-check">
@@ -67,6 +71,7 @@
         <p class="kicker" id="success-status">DRAFT SAVED</p>
         <h2 id="success-title"></h2>
         <p id="success-message">Your article and featured image are saved as a draft. Review it in your website editor before publishing.</p>
+        <a id="published-link" class="button button-light" href="/" hidden>View published article</a>
         <button id="new-draft" class="button button-dark" type="button">Add another article</button>
       </section>
     </main>

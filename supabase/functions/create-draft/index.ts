@@ -142,16 +142,30 @@ Deno.serve(async (request) => {
     }
     const title = payload.title.trim();
     const body = payload.body.trim();
+    const excerpt = typeof payload.excerpt === "string" && payload.excerpt.trim()
+      ? payload.excerpt.trim()
+      : makeExcerpt(body);
+    const imageAlt = typeof payload.imageAlt === "string" && payload.imageAlt.trim()
+      ? payload.imageAlt.trim()
+      : title;
     if (title.length < 5 || title.length > 160) {
       return json({ error: "The title must be between 5 and 160 characters." }, 400);
     }
     if (body.length < 100 || body.length > 12000) {
       return json({ error: "The article must be between 100 and 12,000 characters." }, 400);
     }
+    if (excerpt.length < 20 || excerpt.length > 500) {
+      return json({ error: "The search description must be between 20 and 500 characters." }, 400);
+    }
+    if (typeof payload.excerpt === "string" && payload.excerpt.trim().length > 160) {
+      return json({ error: "Keep the search description to 160 characters or fewer." }, 400);
+    }
+    if (imageAlt.length < 5 || imageAlt.length > 250) {
+      return json({ error: "The featured image description must be between 5 and 250 characters." }, 400);
+    }
     const imageUrl = payload.featuredImageUrl
       ? verifyUploadedImage(payload.featuredImageUrl, ownerId, projectUrl)
       : await saveInstagramImage(payload.instagramUrl, ownerId, projectUrl, serviceKey);
-    const excerpt = makeExcerpt(body);
     const insertResponse = await fetch(`${projectUrl}/rest/v1/posts`, {
       method: "POST",
       headers: {
@@ -166,7 +180,7 @@ Deno.serve(async (request) => {
         excerpt,
         body,
         category: "Bridal style",
-        image_alt: title,
+        image_alt: imageAlt,
         featured_image_url: imageUrl,
         source_url: payload.instagramUrl,
         image_rights_confirmed: true,

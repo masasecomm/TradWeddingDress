@@ -7,6 +7,18 @@ const draftStatus = document.querySelector("#draft-status");
 const draftList = document.querySelector("#draft-list");
 const sessionKey = "threadTraditionEditorSession";
 
+function postUrl(post) {
+  const slug = String(post.title || "")
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "")
+    .slice(0, 70)
+    .replace(/-+$/g, "") || "wedding-dress";
+  return `/posts/${slug}-${encodeURIComponent(post.id)}/`;
+}
+
 function escapeText(value) {
   return String(value ?? "").replace(/[&<>"']/g, (character) => ({
     "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
@@ -73,7 +85,7 @@ async function loadDrafts() {
   draftStatus.textContent = "Loading drafts…";
   draftList.replaceChildren();
   const params = new URLSearchParams({
-    select: "id,title,excerpt,body,featured_image_url,created_at",
+    select: "id,title,excerpt,body,featured_image_url,image_alt,created_at",
     status: "eq.draft",
     order: "created_at.desc"
   });
@@ -89,6 +101,9 @@ async function loadDrafts() {
         <label class="form-label">Excerpt
           <textarea class="text-input draft-textarea" data-field="excerpt" minlength="20" maxlength="500" required>${escapeText(draft.excerpt)}</textarea>
         </label>
+        <label class="form-label">Featured image description
+          <input class="text-input" data-field="image_alt" value="${escapeText(draft.image_alt || draft.title)}" minlength="5" maxlength="250" required>
+        </label>
         <label class="form-label">Article
           <textarea class="text-input draft-textarea draft-body" data-field="body" minlength="100" maxlength="12000" required>${escapeText(draft.body)}</textarea>
         </label>
@@ -96,7 +111,8 @@ async function loadDrafts() {
           <button class="small-button" type="button" data-action="save" data-id="${escapeText(draft.id)}">Save edits</button>
           <button class="small-button primary" type="button" data-action="publish" data-id="${escapeText(draft.id)}">Publish</button>
           <button class="small-button" type="button" data-action="delete" data-id="${escapeText(draft.id)}">Delete</button>
-          <a class="small-button" href="article.html?id=${encodeURIComponent(draft.id)}">Preview</a>
+          <a class="small-button" href="article.html?id=${encodeURIComponent(draft.id)}">Preview draft</a>
+          <a class="small-button" href="${postUrl(draft)}">View published page</a>
         </div>
       </div>
     </article>`).join("");
@@ -154,7 +170,8 @@ draftList.addEventListener("click", async (event) => {
       const update = {
         title: card.querySelector('[data-field="title"]').value.trim(),
         excerpt: card.querySelector('[data-field="excerpt"]').value.trim(),
-        body: card.querySelector('[data-field="body"]').value.trim()
+        body: card.querySelector('[data-field="body"]').value.trim(),
+        image_alt: card.querySelector('[data-field="image_alt"]').value.trim()
       };
       if (action === "publish") {
         update.status = "published";
