@@ -3,28 +3,42 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Traditional Wedding Dress Website</title>
+    <meta name="theme-color" content="#ffffff">
+    <title>Wedding Dress Publisher | Traditional Wedding Dress</title>
     <link rel="stylesheet" href="popup.css">
     <script src="popup.js" defer></script>
   </head>
   <body>
-    <header class="popup-header">
-      <span class="brand-mark">T</span>
-      <div><p class="kicker">TRADITIONAL WEDDING DRESS</p><h1>Wedding dress publisher</h1></div>
+    <header class="site-header">
+      <a class="brand" href="https://traditionalweddingdress.com/" aria-label="Traditional Wedding Dress home">
+        TRADITIONAL<span class="brand-accent"> WEDDING</span><span class="brand-period"> DRESS</span>
+      </a>
+      <span class="header-label">EDITORIAL STUDIO</span>
     </header>
-    <main>
-      <section id="settings">
-        <details id="connection-settings">
+    <main class="editorial-page">
+      <section class="intro-heading">
+        <p class="eyebrow">YOUR WEDDING JOURNAL</p>
+        <h1>Publish a dress story</h1>
+        <p class="intro">Create thoughtful, photo-rich articles celebrating traditional bridal style.</p>
+      </section>
+      <section id="settings" class="editor-card">
+        <details id="connection-settings" class="connection-settings">
           <summary>Website connection</summary>
-          <label for="project-url">Supabase project URL</label>
-          <input id="project-url" type="url" placeholder="https://your-project.supabase.co" autocomplete="url">
-          <label for="anon-key">Supabase anon key</label>
-          <input id="anon-key" type="password" placeholder="Public anon key" autocomplete="off">
-          <button id="save-settings" class="button button-light" type="button">Save connection</button>
+          <div class="connection-fields">
+            <label for="project-url">Supabase project URL</label>
+            <input id="project-url" type="url" placeholder="https://your-project.supabase.co" autocomplete="url">
+            <label for="anon-key">Supabase anon key</label>
+            <input id="anon-key" type="password" placeholder="Public anon key" autocomplete="off">
+            <button id="save-settings" class="button button-light" type="button">Save connection</button>
+          </div>
         </details>
         <div id="signed-out">
-          <p class="intro">Sign in to connect your private publishing studio.</p>
-          <form id="login-form">
+          <div class="section-heading">
+            <p class="eyebrow">WELCOME BACK</p>
+            <h2>Sign in to your studio</h2>
+            <p>Use your editor account to prepare and publish stories.</p>
+          </div>
+          <form id="login-form" class="form-grid">
             <label for="email">Email</label>
             <input id="email" type="email" autocomplete="username" required>
             <label for="password">Password</label>
@@ -35,46 +49,61 @@
               src="https://traditionalweddingdress.com/turnstile.html"
               title="Cloudflare security check"
             ></iframe>
-            <button class="button button-dark" type="submit">Sign in</button>
+            <button class="button button-dark" type="submit">Sign in <span aria-hidden="true">→</span></button>
           </form>
         </div>
         <div id="signed-in" hidden>
           <p class="account-line">Signed in as <strong id="account-email"></strong> <button id="sign-out" class="text-button" type="button">Sign out</button></p>
           <form id="draft-form">
-            <label for="instagram-url">Instagram post or reel link</label>
-            <input id="instagram-url" type="url" placeholder="https://www.instagram.com/p/..." required>
-            <label for="post-title">Article title</label>
-            <input id="post-title" type="text" minlength="5" maxlength="160" placeholder="Give your story a title" required>
-            <label for="post-description">Search description <span>(50–160 characters)</span></label>
-            <textarea id="post-description" rows="3" minlength="50" maxlength="160" placeholder="Write a clear summary of this dress and what readers will learn." required></textarea>
-            <label for="post-body">Your article</label>
-            <textarea id="post-body" rows="8" minlength="100" maxlength="12000" placeholder="Write or paste your article here (at least 100 characters)." required></textarea>
-            <label for="image-alt">Featured image description</label>
-            <input id="image-alt" type="text" minlength="5" maxlength="250" placeholder="Describe the dress and visible details in the image." required>
-            <label for="featured-image">Upload the featured image <span>(if Instagram cannot provide it)</span></label>
-            <input id="featured-image" type="file" accept="image/jpeg,image/png,image/webp">
-            <label class="rights-check">
-              <input id="image-rights" type="checkbox" required>
-              <span>I own this image or have permission to reuse it on my website.</span>
-            </label>
+            <div class="form-section">
+              <p class="eyebrow">THE STORY</p>
+              <label for="more-info-url">More information link <span>(optional)</span></label>
+              <input id="more-info-url" type="url" placeholder="https://...">
+              <label for="post-title">Article title</label>
+              <input id="post-title" type="text" minlength="5" maxlength="160" placeholder="Give your story a title" required>
+              <label for="post-description">Search description <span>(50–160 characters)</span></label>
+              <textarea id="post-description" rows="3" minlength="50" maxlength="160" placeholder="Write a clear summary of this dress and what readers will learn." required></textarea>
+              <label for="post-body">Your article</label>
+              <textarea id="post-body" class="article-body" rows="10" minlength="100" maxlength="12000" placeholder="Write or paste your article here (at least 100 characters)." required></textarea>
+            </div>
+            <fieldset class="photo-list">
+              <legend>Featured image</legend>
+              <p class="notice">This first photo appears at the top of your article. Once the title and image description are ready and photo rights are confirmed, the extension saves a permanent copy to GitHub and replaces the expiring link.</p>
+              <label>Featured photo link
+                <input id="featured-photo-url" data-photo-url type="url" placeholder="https://media.fastdl.app/get?..." required>
+              </label>
+              <p class="photo-upload-status" data-photo-status role="status" aria-live="polite"></p>
+              <label>Featured image description
+                <input id="featured-photo-alt" data-photo-alt type="text" minlength="5" maxlength="250" placeholder="Describe the dress and visible details." required>
+              </label>
+              <label class="rights-check">
+                <input id="featured-photo-rights" data-photo-rights type="checkbox" required>
+                <span>I own this photo or have permission to copy and publish it.</span>
+              </label>
+            </fieldset>
+            <fieldset class="photo-list">
+              <legend>Additional article photos</legend>
+              <p class="notice">Add each extra photo and choose the paragraph to place it after. Once its description and rights are confirmed, it is saved to GitHub and its link is replaced with the permanent website URL.</p>
+              <div id="photo-items"></div>
+              <button id="add-photo" class="button button-light add-photo" type="button">＋ Add an article photo</button>
+            </fieldset>
             <div class="publish-actions">
               <button class="button button-light" type="submit" name="publishStatus" value="draft">Save as draft</button>
               <button class="button button-dark" type="submit" name="publishStatus" value="published">Publish now <span aria-hidden="true">→</span></button>
             </div>
           </form>
-          <p class="notice">Your article is saved as a draft. If Instagram cannot provide the photo, upload it above. Review your draft in the website editor before publishing.</p>
         </div>
         <p id="status" role="status" aria-live="polite"></p>
       </section>
-      <section id="success-panel" hidden>
+      <section id="success-panel" class="editor-card success-panel" hidden>
         <div class="success-mark">✓</div>
-        <p class="kicker" id="success-status">DRAFT SAVED</p>
+        <p class="eyebrow" id="success-status">DRAFT SAVED</p>
         <h2 id="success-title"></h2>
         <p id="success-message">Your article and featured image are saved as a draft. Review it in your website editor before publishing.</p>
         <a id="published-link" class="button button-light" href="/" hidden>View published article</a>
         <button id="new-draft" class="button button-dark" type="button">Add another article</button>
       </section>
     </main>
-    <footer>Your writing, your story · Review before publishing</footer>
+    <footer class="site-footer">Traditional Wedding Dress <span>·</span> Your writing, your story</footer>
   </body>
 </html>

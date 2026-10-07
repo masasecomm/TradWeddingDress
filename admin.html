@@ -3,7 +3,9 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Editor | Traditional Wedding Dress</title>
+    <meta name="theme-color" content="#ffffff">
+    <meta name="robots" content="noindex,nofollow">
+    <title>Editorial Studio | Traditional Wedding Dress</title>
     <link rel="stylesheet" href="styles.css">
     <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
     <script src="config.js" defer></script>
@@ -11,14 +13,14 @@
   </head>
   <body class="admin-page">
     <header class="site-header">
-      <a class="header-menu" href="./#recent-posts"><span aria-hidden="true">←</span><span>Posts</span></a>
+      <a class="header-menu" href="./"><span aria-hidden="true">←</span><span>Visit blog</span></a>
       <a class="brand" href="./" aria-label="Traditional Wedding Dress home"><span>TRADITIONAL<span class="brand-accent"> WEDDING</span><span class="brand-period"> DRESS</span></span></a>
-      <a class="header-link" href="./">View the blog <span aria-hidden="true">↗</span></a>
+      <a class="header-link" href="https://fastdl.app/en5IW" target="_blank" rel="noopener noreferrer">Get photos <span aria-hidden="true">↗</span></a>
     </header>
-    <main class="admin-shell">
+    <main class="admin-shell studio-shell">
       <p class="eyebrow">Your publishing studio</p>
-      <h1>Posts in the<br><em>making.</em></h1>
-      <p class="admin-intro">Sign in with your Supabase account to review drafts created by the Chrome extension. Your blog posts go live only when you publish them here.</p>
+      <h1>Stories with<br><em>tradition.</em></h1>
+      <p class="admin-intro">Write and manage articles, organize categories, and follow readership in one place. This is the same studio opened by the Chrome extension.</p>
       <section id="login-panel" class="admin-panel">
         <h2>Editor sign in</h2>
         <form id="login-form">
@@ -31,24 +33,80 @@
         </form>
         <p class="form-status" id="login-status" role="status"></p>
       </section>
-      <section id="drafts-panel" hidden>
-        <div class="section-heading">
-          <div><p class="eyebrow">Review before publishing</p><h2>Your drafts</h2></div>
+      <section id="studio-panel" hidden>
+        <div class="section-heading studio-topbar">
+          <div><p class="eyebrow">EDITORIAL DASHBOARD</p><h2>Welcome, <span id="editor-email"></span></h2></div>
           <button class="small-button" id="sign-out" type="button">Sign out</button>
         </div>
-        <p class="form-status" id="draft-status" role="status"></p>
-        <div class="draft-list" id="draft-list"></div>
+        <p id="studio-status" class="form-status" role="status" aria-live="polite"></p>
+        <section class="analytics-grid" aria-label="Website analytics">
+          <article class="analytics-card"><span>Total article views</span><strong id="total-views">—</strong></article>
+          <article class="analytics-card"><span>Views today</span><strong id="today-views">—</strong></article>
+          <article class="analytics-card"><span>Viewing now <i class="live-dot"></i></span><strong id="live-viewers">—</strong><small>Active in the last 90 seconds</small></article>
+          <article class="analytics-card"><span>Your articles</span><strong id="post-count">—</strong></article>
+        </section>
+        <section class="admin-panel category-panel">
+          <div class="section-heading"><div><p class="eyebrow">ORGANIZE STORIES</p><h2>Categories</h2></div></div>
+          <form id="category-form" class="category-form">
+            <label class="form-label" for="new-category">Create a category</label>
+            <div class="inline-form"><input class="text-input" id="new-category" minlength="2" maxlength="80" placeholder="e.g. Venda bridal style" required><button class="small-button primary" type="submit">Add category</button></div>
+          </form>
+          <div id="category-list" class="category-list"></div>
+        </section>
+        <section class="admin-panel composer-panel">
+          <div class="section-heading"><div><p class="eyebrow">CREATE SOMETHING MEANINGFUL</p><h2>Write a new article</h2></div></div>
+          <form id="article-form" class="article-form">
+            <label class="form-label" for="article-title">Article title</label>
+            <input class="text-input" id="article-title" minlength="5" maxlength="160" placeholder="Give your story a title" required>
+            <label class="form-label" for="article-category">Category</label>
+            <select class="text-input" id="article-category" required></select>
+            <label class="form-label" for="article-excerpt">Search description (50–160 characters)</label>
+            <textarea class="text-input" id="article-excerpt" minlength="50" maxlength="160" rows="3" placeholder="Summarize this dress and what readers will learn." required></textarea>
+            <label class="form-label" for="article-source">More information link <span>(optional)</span></label>
+            <input class="text-input" id="article-source" type="url" placeholder="https://...">
+            <label class="form-label" for="article-body">Your article</label>
+            <textarea class="text-input draft-body" id="article-body" minlength="100" maxlength="12000" rows="12" placeholder="Write your original article. Separate paragraphs with a blank line." required></textarea>
+            <fieldset class="studio-photo-group">
+              <legend>Featured photo</legend>
+              <p class="photo-help">Add the temporary image link, alt description, and permission confirmation. It is copied to GitHub and replaced with a permanent site link before saving.</p>
+              <label class="form-label" for="featured-url">Photo link</label>
+              <input class="text-input" id="featured-url" data-photo-url data-photo-number="0" type="url" placeholder="https://media.fastdl.app/get?..." required>
+              <p class="photo-status" data-photo-status role="status"></p>
+              <label class="form-label" for="featured-alt">Image description</label>
+              <input class="text-input" id="featured-alt" data-photo-alt minlength="5" maxlength="250" placeholder="Describe visible details of the dress." required>
+              <label class="photo-rights"><input type="checkbox" data-photo-rights required> I own this photo or have permission to publish it.</label>
+            </fieldset>
+            <fieldset class="studio-photo-group">
+              <legend>Additional photos</legend>
+              <p class="photo-help">Choose the article paragraph where each image should appear. Separate article paragraphs with blank lines.</p>
+              <div id="extra-photos"></div>
+              <button class="small-button" id="add-extra-photo" type="button">＋ Add photo</button>
+            </fieldset>
+            <div class="draft-actions composer-actions">
+              <button class="small-button" type="submit" name="article-status" value="draft">Save as draft</button>
+              <button class="small-button primary" type="submit" name="article-status" value="published">Publish now ↗</button>
+            </div>
+          </form>
+        </section>
+        <section class="posts-panel">
+          <div class="section-heading posts-heading">
+            <div><p class="eyebrow">YOUR LIBRARY</p><h2>Drafts &amp; published</h2></div>
+            <button class="small-button" id="refresh-posts" type="button">Refresh</button>
+          </div>
+          <div class="post-filters" role="group" aria-label="Filter articles">
+            <button class="small-button active" data-filter="all" type="button">All</button>
+            <button class="small-button" data-filter="draft" type="button">Drafts</button>
+            <button class="small-button" data-filter="published" type="button">Published</button>
+          </div>
+          <div id="post-list" class="draft-list"></div>
+        </section>
       </section>
     </main>
     <footer class="site-footer editorial-footer">
       <div class="footer-main content-width">
-        <div class="footer-about">
-          <a class="footer-brand" href="./">TRADITIONAL<span> WEDDING</span> DRESS</a>
-          <p>A blog celebrating traditional wedding dresses and the stories woven into every look.</p>
-        </div>
+        <div class="footer-about"><a class="footer-brand" href="./">TRADITIONAL<span> WEDDING</span> DRESS</a><p>A blog celebrating traditional wedding dresses and the stories woven into every look.</p></div>
         <div><h2>Explore</h2><a href="./#recent-posts">Recent posts</a></div>
         <div><h2>About</h2><a href="about.html">About us</a><a href="contact.html">Contact us</a><a href="./">Visit the blog</a></div>
-        <div class="footer-social"><h2>Follow</h2><a href="https://www.facebook.com/traditionalweddingdress/" target="_blank" rel="noopener noreferrer">Facebook ↗</a><a href="https://za.pinterest.com/traditionalweddingdress/" target="_blank" rel="noopener noreferrer">Pinterest ↗</a></div>
       </div>
       <div class="footer-bottom content-width"><span>© <span id="year"></span> Traditional Wedding Dress</span><span>Celebrating the traditions we wear.</span></div>
     </footer>

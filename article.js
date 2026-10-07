@@ -12,8 +12,10 @@ function updateArticleMetadata(post) {
     .replace(/\s+/g, " ")
     .trim()
     .slice(0, 160);
-  const image = post.featured_image_url || "";
+  const image = post.featured_image_url || post.body_images?.[0]?.url || "";
   const imageAlt = post.image_alt || post.title;
+  const imageUrls = [image, ...(Array.isArray(post.body_images) ? post.body_images.map((item) => item.url) : [])]
+    .filter((url, index, urls) => typeof url === "string" && url && urls.indexOf(url) === index);
 
   document.title = title;
   document.querySelector('meta[name="description"]').content = description;
@@ -55,7 +57,7 @@ function updateArticleMetadata(post) {
     "@type": "BlogPosting",
     headline: post.title,
     description,
-    image: image ? [image] : [],
+    image: imageUrls,
     datePublished: post.published_at || post.created_at,
     author: { "@type": "Organization", name: "Traditional Wedding Dress" },
     mainEntityOfPage: location.href
@@ -72,7 +74,7 @@ async function loadArticle() {
   }
   try {
     const query = new URLSearchParams({
-      select: "title,body,excerpt,category,featured_image_url,image_alt,source_url,created_at,published_at,status",
+      select: "title,body,excerpt,category,featured_image_url,image_alt,body_images,source_url,created_at,published_at,status",
       id: `eq.${id}`,
       limit: "1"
     });
@@ -95,8 +97,25 @@ async function loadArticle() {
       articleRoot.innerHTML = '<p class="empty-message">This post is not available. <a href="./">Return to the blog</a>.</p>';
       return;
     }
+    if (post.status === "published") window.trackPostView?.(post.id);
     updateArticleMetadata(post);
-    const paragraphs = post.body.split(/\n{2,}/).map((paragraph) => `<p>${safeText(paragraph).replace(/\n/g, "<br>")}</p>`).join("");
+    const bodyImages = Array.isArray(post.body_images) ? post.body_images : [];
+    const imagesAfter = new Map();
+    for (const image of bodyImages) {
+      if (!Number.isInteger(image.afterParagraph) || image.afterParagraph < 1) continue;
+      const images = imagesAfter.get(image.afterParagraph) || [];
+      images.push(image);
+      imagesAfter.set(image.afterParagraph, images);
+    }
+    const paragraphs = post.body.split(/\n\s*\n/)
+      .map((paragraph) => paragraph.trim())
+      .filter(Boolean)
+      .map((paragraph, index) => {
+        const inlineImages = (imagesAfter.get(index + 1) || [])
+          .map((image) => `<figure class="article-inline-image"><img class="article-image" src="${safeText(image.url)}" alt="${safeText(image.alt)}" loading="lazy"></figure>`)
+          .join("");
+        return `<p>${safeText(paragraph).replace(/\n/g, "<br>")}</p>${inlineImages}`;
+      }).join("");
     articleRoot.innerHTML = `
       <article class="article-body">
         <a class="article-back" href="./#recent-posts">← Back to the blog</a>
@@ -108,7 +127,7 @@ async function loadArticle() {
         </header>
         ${post.featured_image_url ? `<img class="article-image" src="${safeText(post.featured_image_url)}" alt="${safeText(post.image_alt || post.title)}">` : ""}
         <div class="article-copy">${paragraphs}</div>
-        ${post.source_url ? `<p class="source-note">Image inspiration: <a href="${safeText(post.source_url)}" target="_blank" rel="noopener noreferrer">view the original Instagram post ↗</a></p>` : ""}
+        ${post.source_url ? `<p class="source-note">More information: <a href="${safeText(post.source_url)}" target="_blank" rel="noopener noreferrer">visit the source ↗</a></p>` : ""}
       </article>`;
   } catch (error) {
     articleRoot.innerHTML = `<p class="empty-message">${safeText(error.message)} <a href="./">Return to the blog</a>.</p>`;

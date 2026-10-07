@@ -1,4 +1,4 @@
-import { cp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { access, cp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import vm from "node:vm";
@@ -13,6 +13,7 @@ const publicFiles = [
   "404.html",
   "app.js",
   "article.js",
+  "view-tracker.js",
   "admin.js",
   "contact.js",
   "config.js",
@@ -29,6 +30,7 @@ const postFields = [
   "category",
   "featured_image_url",
   "image_alt",
+  "body_images",
   "source_url",
   "created_at",
   "published_at",
@@ -97,13 +99,26 @@ export function postDescription(post) {
   return clipText(description, 160);
 }
 
-function articleBody(body) {
+function articleBody(body, images = []) {
   const content = String(body ?? "").trim();
-  return content.split(/\n{2,}/)
+  const paragraphs = content.split(/\n\s*\n/)
     .map((paragraph) => paragraph.trim())
-    .filter(Boolean)
-    .map((paragraph) => `<p>${escapeHtml(paragraph).replace(/\n/g, "<br>")}</p>`)
-    .join("\n");
+    .filter(Boolean);
+  const picturesAfter = new Map();
+  for (const image of Array.isArray(images) ? images : []) {
+    if (!Number.isInteger(image.afterParagraph) || image.afterParagraph < 1 || image.afterParagraph > paragraphs.length) continue;
+    const pictures = picturesAfter.get(image.afterParagraph) || [];
+    pictures.push(image);
+    picturesAfter.set(image.afterParagraph, pictures);
+  }
+  return paragraphs.map((paragraph, index) => {
+    const paragraphNumber = index + 1;
+    const pictures = picturesAfter.get(paragraphNumber) || [];
+    const pictureMarkup = pictures.map((image) =>
+      `<figure class="article-inline-image"><img class="article-image" src="${escapeHtml(image.url)}" alt="${escapeHtml(image.alt)}" loading="lazy"></figure>`
+    ).join("\n");
+    return `<p>${escapeHtml(paragraph).replace(/\n/g, "<br>")}</p>${pictureMarkup}`;
+  }).join("\n");
 }
 
 function publishedDate(post) {
@@ -119,6 +134,7 @@ function renderPost(post) {
   const url = postUrl(post);
   const image = String(post.featured_image_url ?? "");
   const imageAlt = plainText(post.image_alt) || title;
+  const bodyImages = Array.isArray(post.body_images) ? post.body_images : [];
   const date = publishedDate(post);
   const category = plainText(post.category) || "Bridal style";
   const structuredData = {
@@ -142,7 +158,7 @@ function renderPost(post) {
         mainEntityOfPage: { "@type": "WebPage", "@id": url },
         headline: title,
         description,
-        image: [image],
+        image: [image, ...bodyImages.map((item) => item.url).filter((url) => typeof url === "string")],
         datePublished: date,
         dateModified: date,
         author: { "@type": "Organization", name: "Traditional Wedding Dress", url: `${siteOrigin}/about.html` },
@@ -188,7 +204,7 @@ function renderPost(post) {
     </script>
     <link rel="stylesheet" href="/styles.css">
   </head>
-  <body class="editorial-page">
+  <body class="editorial-page" data-post-id="${escapeHtml(post.id)}">
     <header class="site-header">
       <a class="header-menu" href="/#recent-posts"><span aria-hidden="true">←</span><span>Posts</span></a>
       <a class="brand" href="/" aria-label="Traditional Wedding Dress home"><span>TRADITIONAL<span class="brand-accent"> WEDDING</span><span class="brand-period"> DRESS</span></span></a>
@@ -207,9 +223,9 @@ function renderPost(post) {
           <img class="article-image" src="${escapeHtml(image)}" alt="${escapeHtml(imageAlt)}" fetchpriority="high" itemprop="image">
         </figure>
         <div class="article-copy" itemprop="articleBody">
-          ${articleBody(post.body)}
+          ${articleBody(post.body, bodyImages)}
         </div>
-        ${post.source_url ? `<p class="source-note">Image inspiration: <a href="${escapeHtml(post.source_url)}" target="_blank" rel="noopener noreferrer">view the original Instagram post ↗</a></p>` : ""}
+        ${post.source_url ? `<p class="source-note">More information: <a href="${escapeHtml(post.source_url)}" target="_blank" rel="noopener noreferrer">visit the source ↗</a></p>` : ""}
       </article>
     </main>
     <footer class="site-footer editorial-footer">
@@ -235,10 +251,13 @@ function sitemapXml(posts) {
     ...staticUrls.map((url) => `  <url><loc>${escapeHtml(url)}</loc></url>`),
     ...posts.map((post) => {
       const date = publishedDate(post).slice(0, 10);
-      const image = String(post.featured_image_url ?? "");
-      const imageEntry = image
-        ? `<image:image><image:loc>${escapeHtml(image)}</image:loc><image:title>${escapeHtml(plainText(post.title))}</image:title></image:image>`
-        : "";
+      const images = [
+        post.featured_image_url,
+        ...(Array.isArray(post.body_images) ? post.body_images.map((item) => item.url) : [])
+      ].filter((url) => typeof url === "string");
+      const imageEntry = images.filter(Boolean)
+        .map((image) => `<image:image><image:loc>${escapeHtml(image)}</image:loc><image:title>${escapeHtml(plainText(post.title))}</image:title></image:image>`)
+        .join("");
       return `  <url><loc>${escapeHtml(postUrl(post))}</loc><lastmod>${date}</lastmod>${imageEntry}</url>`;
     })
   ];
@@ -338,6 +357,12 @@ export async function generateSite(posts, outputDirectory) {
   await mkdir(destination, { recursive: true });
   for (const file of publicFiles) {
     await cp(path.join(root, file), path.join(destination, file));
+  }
+  try {
+    await access(path.join(root, "images"));
+    await cp(path.join(root, "images"), path.join(destination, "images"), { recursive: true });
+  } catch (error) {
+    if (error.code !== "ENOENT") throw error;
   }
   await writeFile(path.join(destination, ".nojekyll"), "", "utf8");
   const indexPath = path.join(destination, "index.html");

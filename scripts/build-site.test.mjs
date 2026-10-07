@@ -11,9 +11,21 @@ const validPost = {
   excerpt: "Explore the details, colours, and styling ideas behind this brown Shweshwe traditional wedding dress.",
   body: "A thoughtful introduction to this traditional wedding dress and its distinctive print.\n\nPair the skirt with coordinated accessories for a celebration look.",
   category: "Shweshwe",
-  featured_image_url: "https://birfyvrtkmzgghaspodx.supabase.co/storage/v1/object/public/wedding-dress-images/test/featured.webp",
+  featured_image_url: "https://traditionalweddingdress.com/images/posts/test/brown-shweshwe-featured.jpg",
   image_alt: "Brown Shweshwe wedding dress with a coordinated traditional skirt",
-  source_url: "https://www.instagram.com/p/Abc123/",
+  body_images: [
+    {
+      url: "https://traditionalweddingdress.com/images/posts/test/brown-shweshwe-01.jpg",
+      alt: "Brown Shweshwe dress after the introduction",
+      afterParagraph: 1
+    },
+    {
+      url: "https://traditionalweddingdress.com/images/posts/test/brown-shweshwe-02.webp",
+      alt: "Close-up of the dress fabric",
+      afterParagraph: 2
+    }
+  ],
+  source_url: "https://example.com/more-information",
   created_at: "2026-10-06T12:00:00.000Z",
   published_at: "2026-10-06T12:10:00.000Z",
   status: "published"
@@ -54,11 +66,20 @@ test("site generation emits indexable, escaped article pages and a published-onl
     assert.match(article, /<link rel="canonical" href="https:\/\/traditionalweddingdress\.com\/posts\//);
     assert.match(article, /property="og:image:alt"/);
     assert.match(article, /<h1 itemprop="headline">Brown Shweshwe Traditional Wedding Dress<\/h1>/);
+    assert.match(article, /src="https:\/\/traditionalweddingdress\.com\/images\/posts\/test\/brown-shweshwe-featured\.jpg"/);
+    assert.match(article, /Brown Shweshwe dress after the introduction/);
+    assert.match(article, /Close-up of the dress fabric/);
+    assert.match(article, /distinctive print\.<\/p><figure class="article-inline-image"><img class="article-image" src="https:\/\/traditionalweddingdress\.com\/images\/posts\/test\/brown-shweshwe-01\.jpg"/);
+    assert.match(article, /More information: <a href="https:\/\/example\.com\/more-information"/);
     assert.match(article, /"@type":"BlogPosting"/);
     assert.match(article, /<p>A thoughtful introduction/);
+    assert.match(article, /<body class="editorial-page" data-post-id="12345678-1234-4234-8234-123456789abc">/);
     assert.doesNotMatch(article, /<script>alert\(1\)<\/script>/);
     const sitemap = await readFile(path.join(destination, "sitemap.xml"), "utf8");
     assert.match(sitemap, /posts\/brown-shweshwe-traditional-wedding-dress-/);
+    assert.match(sitemap, /<image:loc>https:\/\/traditionalweddingdress\.com\/images\/posts\/test\/brown-shweshwe-featured\.jpg<\/image:loc>/);
+    assert.match(sitemap, /<image:loc>https:\/\/traditionalweddingdress\.com\/images\/posts\/test\/brown-shweshwe-01\.jpg<\/image:loc>/);
+    assert.match(sitemap, /<image:loc>https:\/\/traditionalweddingdress\.com\/images\/posts\/test\/brown-shweshwe-02\.webp<\/image:loc>/);
     assert.doesNotMatch(sitemap, /draft000/);
     const robots = await readFile(path.join(destination, "robots.txt"), "utf8");
     assert.match(robots, /Sitemap: https:\/\/traditionalweddingdress\.com\/sitemap\.xml/);
@@ -72,6 +93,8 @@ test("site generation emits indexable, escaped article pages and a published-onl
     assert.doesNotMatch(index, /<!-- (?:FEATURED_POSTS|RECENT_POSTS|LATEST_POSTS|TRENDING_POSTS)_START -->/);
     const homeScript = await readFile(path.join(destination, "app.js"), "utf8");
     assert.doesNotMatch(homeScript, /supabase|fetch\(/i);
+    const viewTracker = await readFile(path.join(destination, "view-tracker.js"), "utf8");
+    assert.match(viewTracker, /record_post_view/);
   } finally {
     await rm(destination, { recursive: true, force: true });
   }

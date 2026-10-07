@@ -1,11 +1,13 @@
 {
   "manifest_version": 3,
   "name": "Traditional Wedding Dress Website",
-  "version": "1.2.0",
-  "description": "Add traditional wedding-dress articles and Instagram photos to your website.",
+  "version": "1.4.0",
+  "description": "Publish traditional wedding-dress articles with photos to your website.",
   "action": {
-    "default_title": "Create a wedding-dress draft",
-    "default_popup": "popup.html"
+    "default_title": "Open the wedding-dress publisher"
+  },
+  "background": {
+    "service_worker": "background.js"
   },
   "permissions": ["storage"],
   "host_permissions": ["https://*.supabase.co/*"],

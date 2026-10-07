@@ -4,6 +4,32 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS"
 };
 
+const imageHosts = (hostname: string) =>
+  hostname === "media.fastdl.app"
+  || isCdnImageHost(hostname);
+
+function isCdnImageHost(hostname: string) {
+  return hostname === "cdninstagram.com"
+  || hostname.endsWith(".cdninstagram.com")
+  || hostname === "fbcdn.net"
+  || hostname.endsWith(".fbcdn.net");
+}
+const maxImageBytes = 8 * 1024 * 1024;
+const maxPhotos = 10;
+
+type SubmittedPhoto = {
+  url: string;
+  alt: string;
+  afterParagraph?: number;
+  rightsConfirmed: boolean;
+};
+
+type SavedPhoto = {
+  url: string;
+  alt: string;
+  afterParagraph?: number;
+};
+
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), {
     status,
@@ -16,18 +42,46 @@ function requireEnv(name: string): string {
   return value;
 }
 
-function isInstagramPermalink(value: unknown): value is string {
+function validatePhotoUrl(value: unknown): URL {
+  if (typeof value !== "string" || value.length > 4000) {
+    throw new Error("Enter a valid direct photo link.");
+  }
+  let url: URL;
+  try {
+    url = new URL(value);
+  } catch {
+    throw new Error("Enter a valid direct photo link.");
+  }
+  if (
+    url.protocol !== "https:"
+    || url.username
+    || url.password
+    || !imageHosts(url.hostname)
+    || (url.hostname === "media.fastdl.app" && url.pathname !== "/get")
+  ) {
+    throw new Error("Use an HTTPS FastDL photo link or a direct Instagram/Facebook CDN image link.");
+  }
+  if (url.hostname === "media.fastdl.app") {
+    const target = url.searchParams.get("uri");
+    if (!target || !isCdnImageHost(new URL(target).hostname)) {
+      throw new Error("The FastDL link must point to an Instagram or Facebook CDN photo.");
+    }
+  }
+  return url;
+}
+
+function isMoreInfoUrl(value: unknown): value is string | undefined {
+  if (value === undefined || value === "") return true;
   if (typeof value !== "string" || value.length > 2000) return false;
   try {
     const url = new URL(value);
-    return (url.hostname === "instagram.com" || url.hostname === "www.instagram.com" || url.hostname === "m.instagram.com")
-      && /^\/(?:p|reel|tv)\/[A-Za-z0-9_-]+\/?/.test(url.pathname);
+    return url.protocol === "https:" && !url.username && !url.password;
   } catch {
     return false;
   }
 }
 
-async function authenticate(request: Request, supabaseUrl: string, anonKey: string) {
+async function authenticate(request: Request, supabaseUrl: string, anonKey: string, editorId: string) {
   const authorization = request.headers.get("authorization");
   if (!authorization?.startsWith("Bearer ")) {
     throw new Error("Sign in to the extension before creating a draft.");
@@ -37,82 +91,188 @@ async function authenticate(request: Request, supabaseUrl: string, anonKey: stri
   });
   if (!response.ok) throw new Error("Your sign-in has expired. Sign in again and retry.");
   const user = await response.json();
-  if (typeof user.id !== "string") throw new Error("Could not verify your account.");
-  return user.id as string;
+  if (typeof user.id !== "string" || user.id !== editorId) {
+    throw new Error("This account is not authorized to publish website articles.");
+  }
+  return user.id;
 }
 
-function isInstagramImageHost(hostname: string) {
-  return hostname === "cdninstagram.com"
-    || hostname.endsWith(".cdninstagram.com")
-    || hostname === "fbcdn.net"
-    || hostname.endsWith(".fbcdn.net");
+async function fetchPhoto(url: URL): Promise<{ bytes: Uint8Array; extension: string }> {
+  const signal = AbortSignal.timeout(30000);
+  let currentUrl = url;
+  let response: Response | undefined;
+  for (let redirects = 0; redirects <= 5; redirects += 1) {
+    response = await fetch(currentUrl, { redirect: "manual", signal });
+    if (![301, 302, 303, 307, 308].includes(response.status)) break;
+    const location = response.headers.get("location");
+    if (!location || redirects === 5) throw new Error("The photo link redirected too many times.");
+    currentUrl = validatePhotoUrl(new URL(location, currentUrl).href);
+  }
+  if (!response || !response.ok) throw new Error(`The photo could not be downloaded (HTTP ${response?.status ?? "unknown"}).`);
+
+  const mimeType = response.headers.get("content-type")?.split(";")[0].trim().toLowerCase();
+  const extensions: Record<string, string> = {
+    "image/jpeg": "jpg",
+    "image/png": "png",
+    "image/webp": "webp"
+  };
+  if (!mimeType || (!extensions[mimeType] && mimeType !== "application/octet-stream")) {
+    throw new Error("Photo links must return a JPG, PNG, or WebP image.");
+  }
+  const statedLength = Number(response.headers.get("content-length"));
+  if (Number.isFinite(statedLength) && statedLength > maxImageBytes) {
+    throw new Error("Each photo must be smaller than 8 MB.");
+  }
+  if (!response.body) throw new Error("The photo response was empty.");
+  const reader = response.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let totalBytes = 0;
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    totalBytes += value.byteLength;
+    if (totalBytes > maxImageBytes) {
+      await reader.cancel();
+      throw new Error("Each photo must be smaller than 8 MB.");
+    }
+    chunks.push(value);
+  }
+  const bytes = new Uint8Array(totalBytes);
+  let offset = 0;
+  for (const chunk of chunks) {
+    bytes.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  const detectedType = bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff
+    ? "image/jpeg"
+    : bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47
+      ? "image/png"
+      : bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46
+        && bytes[8] === 0x57 && bytes[9] === 0x45 && bytes[10] === 0x42 && bytes[11] === 0x50
+        ? "image/webp"
+        : null;
+  if (!detectedType || (extensions[mimeType] && extensions[mimeType] !== extensions[detectedType])) {
+    throw new Error("The downloaded photo content does not match its image format.");
+  }
+  return { bytes, extension: extensions[detectedType] };
 }
 
-async function getInstagramThumbnail(permalink: string, token: string) {
-  const endpoint = new URL("https://graph.facebook.com/v22.0/instagram_oembed");
-  endpoint.searchParams.set("url", permalink);
-  endpoint.searchParams.set("access_token", token);
-  const response = await fetch(endpoint);
-  const result = await response.json();
-  if (!response.ok) {
-    console.error("Instagram oEmbed request failed", result);
-    throw new Error("Instagram could not provide a preview for this post. Upload an image file instead.");
+function base64(bytes: Uint8Array): string {
+  let binary = "";
+  const chunkSize = 0x8000;
+  for (let index = 0; index < bytes.length; index += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(index, index + chunkSize));
   }
-  if (typeof result.thumbnail_url !== "string") {
-    throw new Error("Instagram did not provide an image preview for this post. Upload an image file instead.");
-  }
-  const thumbnail = new URL(result.thumbnail_url);
-  if (thumbnail.protocol !== "https:" || !isInstagramImageHost(thumbnail.hostname)) {
-    throw new Error("Instagram returned an unsupported image address. Upload an image file instead.");
-  }
-  return thumbnail;
+  return btoa(binary);
 }
 
-async function saveInstagramImage(permalink: string, userId: string, projectUrl: string, serviceKey: string) {
-  const token = Deno.env.get("INSTAGRAM_OEMBED_ACCESS_TOKEN");
-  if (!token) throw new Error("Choose an image file or configure Instagram oEmbed in Supabase.");
-  const thumbnail = await getInstagramThumbnail(permalink, token);
-  const response = await fetch(thumbnail);
-  if (!response.ok) throw new Error("The Instagram preview image could not be downloaded. Upload an image file instead.");
-  const mimeType = response.headers.get("content-type")?.split(";")[0].toLowerCase();
-  if (!["image/jpeg", "image/png", "image/webp"].includes(mimeType ?? "")) {
-    throw new Error("Instagram returned an unsupported image format. Upload a JPG, PNG, or WebP image instead.");
+function filenameSlug(title: string): string {
+  return title.normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "")
+    .slice(0, 70)
+    .replace(/-+$/g, "") || "wedding-dress";
+}
+
+function hostedPhotoPath(value: string): string | null {
+  let url: URL;
+  try {
+    url = new URL(value);
+  } catch {
+    return null;
   }
-  const image = await response.arrayBuffer();
-  if (image.byteLength > 8 * 1024 * 1024) throw new Error("The Instagram preview image exceeds the 8 MB limit.");
-  const extension = mimeType === "image/png" ? "png" : mimeType === "image/webp" ? "webp" : "jpg";
-  const objectPath = `${userId}/${crypto.randomUUID()}.${extension}`;
-  const upload = await fetch(`${projectUrl}/storage/v1/object/wedding-dress-images/${objectPath}`, {
-    method: "POST",
+  if (
+    url.origin !== "https://traditionalweddingdress.com"
+    || url.search
+    || url.hash
+    || !/^\/images\/posts\/[0-9a-f-]{36}\/[a-z0-9-]+-(?:featured|[0-9]{2})\.(?:jpg|png|webp)$/.test(url.pathname)
+  ) {
+    return null;
+  }
+  return url.pathname.slice(1);
+}
+
+async function uploadPhotoToGitHub(
+  photo: SubmittedPhoto,
+  title: string,
+  postId: string,
+  index: number,
+  isFeatured: boolean,
+  token: string
+): Promise<SavedPhoto> {
+  const existingPath = hostedPhotoPath(photo.url);
+  if (existingPath) {
+    const encodedPath = existingPath.split("/").map(encodeURIComponent).join("/");
+    const response = await fetch(`https://api.github.com/repos/masasecomm/TradWeddingDress/contents/${encodedPath}?ref=main`, {
+      headers: {
+        Accept: "application/vnd.github+json",
+        Authorization: `Bearer ${token}`,
+        "X-GitHub-Api-Version": "2022-11-28"
+      }
+    });
+    if (!response.ok) {
+      throw new Error(`The saved photo could not be verified in the website repository (GitHub HTTP ${response.status}).`);
+    }
+    const file = await response.json();
+    if (file.type !== "file" || file.path !== existingPath) {
+      throw new Error("The photo link is not a saved image in the website repository.");
+    }
+    return { url: `https://traditionalweddingdress.com/${existingPath}`, alt: photo.alt.trim(), afterParagraph: photo.afterParagraph };
+  }
+  const source = validatePhotoUrl(photo.url);
+  const { bytes, extension } = await fetchPhoto(source);
+  const suffix = isFeatured ? "featured" : String(index).padStart(2, "0");
+  const filename = `${filenameSlug(title)}-${suffix}.${extension}`;
+  const repositoryPath = `images/posts/${postId}/${filename}`;
+  const encodedPath = repositoryPath.split("/").map(encodeURIComponent).join("/");
+  const response = await fetch(`https://api.github.com/repos/masasecomm/TradWeddingDress/contents/${encodedPath}`, {
+    method: "PUT",
     headers: {
-      apikey: serviceKey,
-      Authorization: `Bearer ${serviceKey}`,
-      "Content-Type": mimeType!,
-      "x-upsert": "false"
+      Accept: "application/vnd.github+json",
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+      "X-GitHub-Api-Version": "2022-11-28"
     },
-    body: image
+    body: JSON.stringify({
+      message: `Add article photo: ${filename}`,
+      content: base64(bytes),
+      branch: "main"
+    })
   });
-  if (!upload.ok) {
-    console.error("Featured image storage upload failed", await upload.text());
-    throw new Error("The featured image could not be saved to Supabase Storage.");
+  if (!response.ok) {
+    console.error("GitHub photo upload failed", response.status, await response.text());
+    throw new Error(`Could not save photo ${index + 1} into the website repository (GitHub HTTP ${response.status}).`);
   }
-  return `${projectUrl}/storage/v1/object/public/wedding-dress-images/${objectPath}`;
-}
-
-function verifyUploadedImage(value: unknown, userId: string, projectUrl: string) {
-  if (typeof value !== "string") throw new Error("Choose an image file or configure Instagram oEmbed.");
-  const imageUrl = new URL(value);
-  const projectOrigin = new URL(projectUrl).origin;
-  const expectedPrefix = `/storage/v1/object/public/wedding-dress-images/${userId}/`;
-  if (imageUrl.origin !== projectOrigin || !imageUrl.pathname.startsWith(expectedPrefix)) {
-    throw new Error("The image must be uploaded to your own wedding-dress image folder.");
-  }
-  return imageUrl.toString();
+  return {
+    url: `https://traditionalweddingdress.com/${repositoryPath}`,
+    alt: photo.alt.trim(),
+    afterParagraph: photo.afterParagraph
+  };
 }
 
 function makeExcerpt(body: string): string {
   const plainText = body.replace(/\s+/g, " ").trim();
   return plainText.length > 500 ? `${plainText.slice(0, 497).trimEnd()}...` : plainText;
+}
+
+async function triggerSiteBuild(token: string): Promise<string | null> {
+  const response = await fetch("https://api.github.com/repos/masasecomm/TradWeddingDress/actions/workflows/seo-pages.yml/dispatches", {
+    method: "POST",
+    headers: {
+      Accept: "application/vnd.github+json",
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+      "X-GitHub-Api-Version": "2022-11-28"
+    },
+    body: JSON.stringify({ ref: "main" })
+  });
+  if (!response.ok) {
+    console.error("GitHub Pages rebuild dispatch failed", response.status, await response.text());
+    return `The article is published, but GitHub could not start the website rebuild (HTTP ${response.status}).`;
+  }
+  return null;
 }
 
 Deno.serve(async (request) => {
@@ -122,19 +282,47 @@ Deno.serve(async (request) => {
     const projectUrl = requireEnv("SUPABASE_URL").replace(/\/+$/, "");
     const anonKey = requireEnv("SUPABASE_ANON_KEY");
     const serviceKey = requireEnv("SUPABASE_SERVICE_ROLE_KEY");
-    const ownerId = await authenticate(request, projectUrl, anonKey);
+    const editorId = requireEnv("EDITOR_USER_ID");
+    const ownerId = await authenticate(request, projectUrl, anonKey, editorId);
     const payload = await request.json();
     if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
       return json({ error: "Enter your article title and text." }, 400);
     }
-    if (!isInstagramPermalink(payload.instagramUrl)) {
-      return json({ error: "Enter a valid Instagram post or reel link." }, 400);
+    if (payload.action === "rebuild-site") {
+      const githubToken = requireEnv("GITHUB_TOKEN");
+      const siteBuildError = await triggerSiteBuild(githubToken);
+      if (siteBuildError) return json({ error: siteBuildError }, 502);
+      return json({ siteBuildTriggered: true });
     }
-    if (payload.imageRightsConfirmed !== true) {
-      return json({ error: "Confirm that you own or have permission to reuse this image." }, 400);
+    if (payload.action === "upload-photo") {
+      const title = typeof payload.title === "string" ? payload.title.trim() : "";
+      const photo = payload.photo as SubmittedPhoto | undefined;
+      if (title.length < 5 || title.length > 160) {
+        return json({ error: "Enter an article title between 5 and 160 characters before saving a photo." }, 400);
+      }
+      if (!photo || typeof photo !== "object" || typeof photo.url !== "string") {
+        return json({ error: "Enter a valid direct photo link." }, 400);
+      }
+      validatePhotoUrl(photo.url);
+      if (typeof photo.alt !== "string" || photo.alt.trim().length < 5 || photo.alt.trim().length > 250) {
+        return json({ error: "Add an image description between 5 and 250 characters before saving the photo." }, 400);
+      }
+      if (photo.rightsConfirmed !== true) {
+        return json({ error: "Confirm you own this photo or have permission to republish it." }, 400);
+      }
+      const photoNumber = payload.photoNumber;
+      if (!Number.isInteger(photoNumber) || photoNumber < 0 || photoNumber > maxPhotos - 1) {
+        return json({ error: "Choose a valid photo position before saving the photo." }, 400);
+      }
+      const token = requireEnv("GITHUB_TOKEN");
+      const savedPhoto = await uploadPhotoToGitHub(photo, title, crypto.randomUUID(), photoNumber, photoNumber === 0, token);
+      return json({ photo: savedPhoto });
     }
     if (typeof payload.title !== "string" || typeof payload.body !== "string") {
       return json({ error: "Enter your article title and text." }, 400);
+    }
+    if (!isMoreInfoUrl(payload.moreInfoUrl)) {
+      return json({ error: "The more information link must be a valid HTTPS URL." }, 400);
     }
     const status = payload.status === undefined ? "draft" : payload.status;
     if (status !== "draft" && status !== "published") {
@@ -145,9 +333,6 @@ Deno.serve(async (request) => {
     const excerpt = typeof payload.excerpt === "string" && payload.excerpt.trim()
       ? payload.excerpt.trim()
       : makeExcerpt(body);
-    const imageAlt = typeof payload.imageAlt === "string" && payload.imageAlt.trim()
-      ? payload.imageAlt.trim()
-      : title;
     if (title.length < 5 || title.length > 160) {
       return json({ error: "The title must be between 5 and 160 characters." }, 400);
     }
@@ -160,12 +345,55 @@ Deno.serve(async (request) => {
     if (typeof payload.excerpt === "string" && payload.excerpt.trim().length > 160) {
       return json({ error: "Keep the search description to 160 characters or fewer." }, 400);
     }
-    if (imageAlt.length < 5 || imageAlt.length > 250) {
-      return json({ error: "The featured image description must be between 5 and 250 characters." }, 400);
+    const category = typeof payload.category === "string" && payload.category.trim()
+      ? payload.category.trim()
+      : "Bridal style";
+    if (category.length < 2 || category.length > 80) {
+      return json({ error: "Choose a category between 2 and 80 characters." }, 400);
     }
-    const imageUrl = payload.featuredImageUrl
-      ? verifyUploadedImage(payload.featuredImageUrl, ownerId, projectUrl)
-      : await saveInstagramImage(payload.instagramUrl, ownerId, projectUrl, serviceKey);
+    const categoryResponse = await fetch(
+      `${projectUrl}/rest/v1/categories?${new URLSearchParams({ select: "name", name: `eq.${category}`, limit: "1" })}`,
+      { headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` } }
+    );
+    if (!categoryResponse.ok) throw new Error("The category list could not be checked.");
+    const matchingCategories = await categoryResponse.json();
+    if (!Array.isArray(matchingCategories) || matchingCategories.length !== 1) {
+      return json({ error: "Create or select an available category before saving this article." }, 400);
+    }
+
+    const paragraphs = body.split(/\n\s*\n/).filter((paragraph: string) => paragraph.trim());
+    if (!payload.featuredPhoto || typeof payload.featuredPhoto !== "object" || Array.isArray(payload.featuredPhoto)) {
+      return json({ error: "Add a featured image with a direct photo link." }, 400);
+    }
+    if (!Array.isArray(payload.photos) || payload.photos.length + 1 > maxPhotos) {
+      return json({ error: `Add no more than ${maxPhotos - 1} additional article photos.` }, 400);
+    }
+    const photos = [payload.featuredPhoto, ...payload.photos] as SubmittedPhoto[];
+    for (const [index, photo] of photos.entries()) {
+      if (!photo || typeof photo !== "object" || typeof photo.url !== "string") {
+        return json({ error: `Enter a valid photo link for photo ${index + 1}.` }, 400);
+      }
+      validatePhotoUrl(photo.url);
+      if (typeof photo.alt !== "string" || photo.alt.trim().length < 5 || photo.alt.trim().length > 250) {
+        return json({ error: `Photo ${index + 1} needs a 5–250 character image description.` }, 400);
+      }
+      if (index > 0) {
+        const afterParagraph = photo.afterParagraph;
+        if (typeof afterParagraph !== "number" || !Number.isInteger(afterParagraph) || afterParagraph < 1 || afterParagraph > paragraphs.length) {
+          return json({ error: `Choose a valid paragraph number for photo ${index + 1}.` }, 400);
+        }
+      }
+      if (photo.rightsConfirmed !== true) {
+        return json({ error: `Confirm you own photo ${index + 1} or have permission to republish it.` }, 400);
+      }
+    }
+
+    const githubToken = requireEnv("GITHUB_TOKEN");
+    const postId = crypto.randomUUID();
+    const savedPhotos: SavedPhoto[] = [];
+    for (const [index, photo] of photos.entries()) {
+      savedPhotos.push(await uploadPhotoToGitHub(photo, title, postId, index, index === 0, githubToken));
+    }
     const insertResponse = await fetch(`${projectUrl}/rest/v1/posts`, {
       method: "POST",
       headers: {
@@ -175,28 +403,36 @@ Deno.serve(async (request) => {
         Prefer: "return=representation"
       },
       body: JSON.stringify({
+        id: postId,
         owner_id: ownerId,
         title,
         excerpt,
         body,
-        category: "Bridal style",
-        image_alt: imageAlt,
-        featured_image_url: imageUrl,
-        source_url: payload.instagramUrl,
-        image_rights_confirmed: true,
+        category,
+        image_alt: savedPhotos[0].alt,
+        featured_image_url: savedPhotos[0].url,
+        body_images: savedPhotos.slice(1),
+        source_url: payload.moreInfoUrl || null,
         trend_queries: [],
         status,
         published_at: status === "published" ? new Date().toISOString() : null
       })
     });
     if (!insertResponse.ok) {
-      console.error("Draft insert failed", await insertResponse.text());
+      console.error("Post insert failed", await insertResponse.text());
       throw new Error("Your article could not be saved. Check the posts table setup.");
     }
     const [post] = await insertResponse.json();
-    return json({ post });
+    let siteBuildError: string | null = null;
+    try {
+      siteBuildError = await triggerSiteBuild(githubToken);
+    } catch (error) {
+      console.error("Could not start the website rebuild", error);
+      siteBuildError = "The article was saved, but the website rebuild could not be started.";
+    }
+    return json({ post, siteBuildTriggered: siteBuildError === null, siteBuildError });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Unexpected draft-generation error.";
+    const message = error instanceof Error ? error.message : "Unexpected article-creation error.";
     console.error("create-draft failed:", message);
     return json({ error: message }, 400);
   }
